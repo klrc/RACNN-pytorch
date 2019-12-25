@@ -86,12 +86,12 @@ class AttentionCropLayer(nn.Module):
 
 
 class RACNN(nn.Module):
-    def __init__(self, num_classes, img_scale=448, pretrained=True):
+    def __init__(self, num_classes, img_scale=448):
         super(RACNN, self).__init__()
 
-        self.b1 = mobilenet.mobilenet_v2(pretrained=True)
-        self.b2 = mobilenet.mobilenet_v2(pretrained=True)
-        self.b3 = mobilenet.mobilenet_v2(pretrained=True)
+        self.b1 = mobilenet.mobilenet_v2(num_classes=num_classes)
+        self.b2 = mobilenet.mobilenet_v2(num_classes=num_classes)
+        self.b3 = mobilenet.mobilenet_v2(num_classes=num_classes)
         self.classifier1 = nn.Linear(320, num_classes)
         self.classifier2 = nn.Linear(320, num_classes)
         self.classifier3 = nn.Linear(320, num_classes)

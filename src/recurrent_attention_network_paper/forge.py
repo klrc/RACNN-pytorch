@@ -88,14 +88,14 @@ def test(net, dataloader, stamp):
 
 def run():
     net = RACNN(num_classes=200).cuda()
+    net.load_state_dict(torch.load('build/racnn_pretrained.pt'))
+
     cudnn.benchmark = True
 
-    head_params = list(net.classifier1.parameters()) + list(net.classifier2.parameters()) + list(net.classifier3.parameters())
     cls_params = list(net.b1.parameters()) + list(net.b2.parameters()) + list(net.b3.parameters()) + \
         list(net.classifier1.parameters()) + list(net.classifier2.parameters()) + list(net.classifier3.parameters())
     apn_params = list(net.apn1.parameters()) + list(net.apn2.parameters())
 
-    head_opt = optim.SGD(head_params, lr=0.001, momentum=0.9)
     cls_opt = optim.SGD(cls_params, lr=0.001, momentum=0.9)
     apn_opt = optim.SGD(apn_params, lr=0.001, momentum=0.9)
 
@@ -105,14 +105,11 @@ def run():
     testloader = torch.utils.data.DataLoader(testset, batch_size=16, shuffle=False, collate_fn=testset.CUB_collate, num_workers=4)
     sample = random_sample(testloader)
 
-    net.load_state_dict(torch.load('build/racnn_pretrained.pt'))
 
     epoch = 0
-    # train(net, trainloader, head_opt, epoch, 'backbone', sample)
-    # train(net, trainloader, cls_opt, epoch, 'backbone', sample)
+    train(net, trainloader, cls_opt, epoch, 'backbone', sample)
     train(net, trainloader, apn_opt, epoch, 'apn', sample)
     # test(net, testloader, 'head fine-tune')
-
 
 
 if __name__ == "__main__":

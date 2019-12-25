@@ -1,3 +1,4 @@
+import shutil
 import cv2
 import imageio
 import os
@@ -28,6 +29,11 @@ def random_sample(dataloader):
 
 def run():
     net = RACNN(num_classes=200).cuda()
+    state_dict = torch.load('build/?.pt').state_dict()
+    net.b1.load_state_dict(state_dict)
+    net.b2.load_state_dict(state_dict)
+    net.b3.load_state_dict(state_dict)
+
     cudnn.benchmark = True
 
     params = list(net.apn1.parameters()) + list(net.apn2.parameters())
@@ -72,6 +78,15 @@ def build_gif(path='build/.cache'):
         gif_images.append(imageio.imread(f'{path}/{img_file}'))
     imageio.mimsave(f"build/pretrain_apn.gif", gif_images, fps=6)
 
-if __name__ == "__main__":    
+
+def clean(path='build/.cache/'):
+    print(' :: Cleaning cache dir ...')
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    os.makedirs(path)
+
+
+if __name__ == "__main__":
+    clean()
     run()
     build_gif()
