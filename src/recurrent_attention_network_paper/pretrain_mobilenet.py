@@ -17,7 +17,7 @@ from src.recurrent_attention_network_paper.model import RACNN
 from src.recurrent_attention_network_paper.CUB_loader import CUB200_loader
 from torch.autograd import Variable
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def log(msg):
@@ -60,10 +60,11 @@ def run():
 
     trainset = CUB200_loader('external/CUB_200_2011', split='train')
     testset = CUB200_loader('external/CUB_200_2011', split='test')
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=2, shuffle=True, collate_fn=trainset.CUB_collate, num_workers=4)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, collate_fn=trainset.CUB_collate, num_workers=4)
     testloader = torch.utils.data.DataLoader(testset, batch_size=8, shuffle=False, collate_fn=testset.CUB_collate, num_workers=4)
 
     classes = [line.split(' ')[1] for line in open('external/CUB_200_2011/classes.txt', 'r').readlines()]
+    log(' :: Start training ...')
 
     for epoch in range(100):  # loop over the dataset multiple times
         losses = 0
