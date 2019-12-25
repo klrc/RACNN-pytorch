@@ -1,0 +1,6 @@
+.pt
+build/
+external/
+__pycache__
+*.pt
+*.log
