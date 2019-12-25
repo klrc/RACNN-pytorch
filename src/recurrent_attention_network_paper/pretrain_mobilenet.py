@@ -80,7 +80,7 @@ def run():
             losses += loss
             if step % 20 == 0 and step != 0:
                 avg_loss = losses/20
-                log(f':: loss @step{step:2d}/{len(trainloader)}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
+                log(f':: loss @step({step:2d}/{len(trainloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
                 losses = 0
         eval(net, testloader)
         if epoch % 50 == 0 and epoch != 0:
