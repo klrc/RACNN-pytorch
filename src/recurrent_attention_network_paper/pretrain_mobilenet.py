@@ -65,7 +65,7 @@ def run():
 
     classes = [line.split(' ')[1] for line in open('external/CUB_200_2011/classes.txt', 'r').readlines()]
 
-    for epoch in range(50):  # loop over the dataset multiple times
+    for epoch in range(100):  # loop over the dataset multiple times
         losses = 0
         for step, (inputs, labels) in enumerate(trainloader, 0):
             inputs, labels = Variable(inputs).cuda(), Variable(labels).cuda()
@@ -83,7 +83,7 @@ def run():
                 log(f':: loss @step({step:2d}/{len(trainloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
                 losses = 0
         eval(net, testloader)
-        if epoch % 5 == 0 and epoch != 0:
+        if epoch % 20 == 0 and epoch != 0:
             stamp = f'e{epoch}{int(time.time())}'
             torch.save(net, f'build/mobilenet_v2_cub200-{stamp}.pt')
             torch.save(optimizer.state_dict, f'build/optimizer-{stamp}.pt')
