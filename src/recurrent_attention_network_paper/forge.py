@@ -35,9 +35,7 @@ def train(net, dataloader, optimizer, epoch, _type):
             avg_loss = losses/20
             log(f':: loss @step({step:2d}/{len(dataloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
             losses = 0
-
-        if step > 60:
-            return avg_loss
+    return avg_loss
 
 
 def eval_attention_sample(net, sample, cls_loss, rank_loss, epoch):
