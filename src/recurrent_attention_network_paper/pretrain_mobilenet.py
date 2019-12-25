@@ -17,7 +17,7 @@ from src.recurrent_attention_network_paper.model import RACNN
 from src.recurrent_attention_network_paper.CUB_loader import CUB200_loader
 from torch.autograd import Variable
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 def log(msg):
@@ -65,7 +65,7 @@ def run():
 
     classes = [line.split(' ')[1] for line in open('external/CUB_200_2011/classes.txt', 'r').readlines()]
 
-    for epoch in range(2):  # loop over the dataset multiple times
+    for epoch in range(400):  # loop over the dataset multiple times
         losses = 0
         for step, (inputs, labels) in enumerate(trainloader, 0):
             inputs, labels = Variable(inputs).cuda(), Variable(labels).cuda()
@@ -79,10 +79,14 @@ def run():
 
             losses += loss
             if step % 20 == 0 and step != 0:
-                avg_loss = losses/5
-                log(f':: loss @step{step:2d}/{len(trainloader)}: {loss}\tavg_loss_5: {avg_loss}')
+                avg_loss = losses/20
+                log(f':: loss @step{step:2d}/{len(trainloader)}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
                 losses = 0
         eval(net, testloader)
+        if epoch % 50 == 0 and epoch != 0:
+            stamp = f'e{epoch}{int(time.time())}'
+            torch.save(net, f'build/mobilenet_v2_cub200-{stamp}.pt')
+            torch.save(optimizer.state_dict, f'build/optimizer-{stamp}.pt')
 
 
 if __name__ == "__main__":
