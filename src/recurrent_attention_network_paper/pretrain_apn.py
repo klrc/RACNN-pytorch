@@ -31,7 +31,7 @@ def random_sample(dataloader):
 
 def run():
     net = RACNN(num_classes=200).cuda()
-    state_dict = torch.load('build/?.pt').state_dict()
+    state_dict = torch.load('build/mobilenet_v2_cub200-e801577256085.pt').state_dict()
     net.b1.load_state_dict(state_dict)
     net.b2.load_state_dict(state_dict)
     net.b3.load_state_dict(state_dict)
