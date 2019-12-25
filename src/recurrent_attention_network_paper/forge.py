@@ -1,3 +1,5 @@
+import os
+import shutil
 import sys
 import torch
 import time
@@ -20,76 +22,63 @@ def avg(x): return sum(x)/len(x)
 def log(msg): open('build/core.log', 'a').write(f'[{time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}]\t'+msg+'\n'), print(msg)
 
 
-def train(net, dataloader, optimizer, epoch, _type, sample):
+def train(net, dataloader, optimizer, epoch, _type):
     assert _type in ['apn', 'backbone']
-    losses = []
+    losses = 0
     net.mode(_type), log(f' :: Switch to {_type}')
     for step, (inputs, targets) in enumerate(dataloader, 0):
         loss = net.echo(inputs, targets, optimizer)
-        losses.append(loss)
-        avg_loss = avg(losses[-5 if len(losses) > 5 else -len(losses):])
-        log(f":: loss @epoch{epoch:2d}/step{step:2d} ({_type}): {loss:.12f}\tavg_loss_5: {avg_loss:.12f}")
+        losses += loss
 
-        if step % 5 == 0 and step != 0:  # check point
-            _, _, attens, resized = net(sample.unsqueeze(0))
-            x1, x2 = resized[0].data, resized[1].data
-            plt.imshow(CUB200_loader.tensor_to_img(x1[0]))
-            plt.show()
-            plt.imshow(CUB200_loader.tensor_to_img(x2[0]))
-            plt.show()
+        if step % 20 == 0 and step != 0:
+            avg_loss = losses/20
+            log(f':: loss @step({step:2d}/{len(dataloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
+            losses = 0
 
         if step > 60:
-            break
+            return avg_loss
 
 
-def test(net, dataloader, stamp):
+def eval_attention_sample(net, sample, cls_loss, rank_loss, epoch):
+    _, _, attens, resized = net(sample.unsqueeze(0))
+    x1, x2 = resized[0].data, resized[1].data
+
+    fig = plt.gcf()
+    plt.imshow(CUB200_loader.tensor_to_img(x1[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
+    plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
+    plt.text(0, 0, f'L_cls = {cls_loss:.7f}, L_rank = {rank_loss:.7f}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
+    plt.savefig(f'build/.cache/epoch{epoch}@loss={cls_loss+rank_loss}.jpg', dpi=300, pad_inches=0)    # visualize masked image
+
+    fig = plt.gcf()
+    plt.imshow(CUB200_loader.tensor_to_img(x2[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
+    plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
+    plt.text(0, 0, f'L_cls = {cls_loss:.7f}, L_rank = {rank_loss:.7f}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
+    plt.savefig(f'build/.cache/epoch{epoch}@loss={cls_loss+rank_loss}_4x.jpg', dpi=300, pad_inches=0)    # visualize masked image
+
+
+def eval(net, dataloader):
     log(' :: Testing on test set ...')
-    with torch.no_grad():
-        net.eval()
-        corrects1 = 0
-        corrects2 = 0
-        corrects3 = 0
-        cnt = 0
-        test_cls_losses = []
-        test_apn_losses = []
-        for idx, (test_images, test_labels) in enumerate(dataloader, 0):
-            if idx % 20 == 0:
-                log(f' :: Inferencing test sample ({idx}/{len(dataloader)})')
+    correct_summary = {'clsf-0': {'top-1': 0, 'top-5': 0}, 'clsf-1': {'top-1': 0, 'top-5': 0}, 'clsf-2': {'top-1': 0, 'top-5': 0}}
+    for step, (inputs, labels) in enumerate(dataloader, 0):
+        inputs, labels = Variable(inputs).cuda(), Variable(labels).cuda()
 
-            test_images = test_images.cuda()
-            test_labels = test_labels.cuda()
-            cnt += test_labels.size(0)
-            preds, _, _, _ = net(test_images)
-            test_cls_loss = net.multitask_loss(preds, test_labels)
-            test_apn_loss = net.rank_loss(preds, test_labels)
-            test_cls_losses.append(test_cls_loss)
-            test_apn_losses.append(test_apn_loss)
-            _, predicted1 = torch.max(preds[0], 1)
-            correct1 = (predicted1 == test_labels).sum()
-            corrects1 += correct1
-            _, predicted2 = torch.max(preds[1], 1)
-            correct2 = (predicted2 == test_labels).sum()
-            corrects2 += correct2
-            _, predicted3 = torch.max(preds[2], 1)
-            correct3 = (predicted3 == test_labels).sum()
-            corrects3 += correct3
+        with torch.no_grad():
+            outputs, _, _, _ = net(inputs)
+            for idx, logits in enumerate(outputs):
+                correct_summary[f'clsf-{idx}']['top-1'] += torch.eq(logits.topk(max((1, 1)), 1, True, True)[1], labels.view(-1, 1)).sum().float().item()  # top-1
+                correct_summary[f'clsf-{idx}']['top-5'] += torch.eq(logits.topk(max((1, 5)), 1, True, True)[1], labels.view(-1, 1)).sum().float().item()  # top-5
 
-        test_cls_losses = torch.stack(test_cls_losses).mean()
-        test_apn_losses = torch.stack(test_apn_losses).mean()
-        accuracy1 = corrects1.float() / cnt
-        accuracy2 = corrects2.float() / cnt
-        accuracy3 = corrects3.float() / cnt
-        log(f'test_cls_loss:\t{test_cls_losses.item()} ({stamp})')
-        log(f'test_rank_loss:\t{test_apn_losses.item()} ({stamp})')
-        log(f'test_acc1:\t{accuracy1.item()} ({stamp})')
-        log(f'test_acc2:\t{accuracy2.item()} ({stamp})')
-        log(f'test_acc3:\t{accuracy3.item()} ({stamp})')
+            if step > 200:
+                for clsf in correct_summary.keys():
+                    _summary = correct_summary[clsf]
+                    for topk in _summary.keys():
+                        log(f'\tAccuracy {clsf}@{topk} ({step}/{len(dataloader)}) = {_summary[topk]/((step+1)*int(inputs.shape[0])):.5%}')
+                return
 
 
 def run():
     net = RACNN(num_classes=200).cuda()
-    net.load_state_dict(torch.load('build/racnn_pretrained.pt'))
-
+    net.load_state_dict(torch.load('build/racnn_pretrained-1577262631.pt'))
     cudnn.benchmark = True
 
     cls_params = list(net.b1.parameters()) + list(net.b2.parameters()) + list(net.b3.parameters()) + \
@@ -101,16 +90,31 @@ def run():
 
     trainset = CUB200_loader('external/CUB_200_2011', split='train')
     testset = CUB200_loader('external/CUB_200_2011', split='test')
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=2, shuffle=True, collate_fn=trainset.CUB_collate, num_workers=4)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=16, shuffle=False, collate_fn=testset.CUB_collate, num_workers=4)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, collate_fn=trainset.CUB_collate, num_workers=4)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=8, shuffle=False, collate_fn=testset.CUB_collate, num_workers=4)
     sample = random_sample(testloader)
 
+    for epoch in range(260):
+        cls_loss = train(net, trainloader, cls_opt, epoch, 'backbone')
+        rank_loss = train(net, trainloader, apn_opt, epoch, 'apn')
 
-    epoch = 0
-    train(net, trainloader, cls_opt, epoch, 'backbone', sample)
-    train(net, trainloader, apn_opt, epoch, 'apn', sample)
-    # test(net, testloader, 'head fine-tune')
+        eval_attention_sample(net, sample, cls_loss, rank_loss, epoch)
+        eval(net, testloader)
+
+        if epoch % 20 == 0 and epoch != 0:
+            stamp = f'e{epoch}{int(time.time())}'
+            torch.save(net, f'build/racnn_mobilenetv2_cub200-{stamp}.pt')
+            torch.save(cls_opt.state_dict, f'build/cls_optimizer-{stamp}.pt')
+            torch.save(apn_opt.state_dict, f'build/apn_optimizer-{stamp}.pt')
+
+
+def clean(path='build/.cache/'):
+    print(' :: Cleaning cache dir ...')
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    os.makedirs(path)
 
 
 if __name__ == "__main__":
+    clean()
     run()
