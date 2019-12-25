@@ -17,6 +17,8 @@ from src.recurrent_attention_network_paper.model import RACNN
 from src.recurrent_attention_network_paper.CUB_loader import CUB200_loader
 from torch.autograd import Variable
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 
 def log(msg):
     open('build/core.log', 'a').write(f'[{time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}]\t'+msg+'\n'), print(msg)
