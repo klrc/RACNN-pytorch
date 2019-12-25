@@ -31,10 +31,10 @@ def random_sample(dataloader):
 
 def run():
     net = RACNN(num_classes=200).cuda()
-    state_dict = torch.load('build/mobilenet_v2_cub200-e801577256085.pt').state_dict()
-    net.b1.load_state_dict(state_dict)
-    net.b2.load_state_dict(state_dict)
-    net.b3.load_state_dict(state_dict)
+    # state_dict = torch.load('build/mobilenet_v2_cub200-e801577256085.pt').state_dict()
+    # net.b1.load_state_dict(state_dict)
+    # net.b2.load_state_dict(state_dict)
+    # net.b3.load_state_dict(state_dict)
 
     cudnn.benchmark = True
 
@@ -67,7 +67,7 @@ def run():
                 plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
                 plt.text(0, 0, f'loss = {avg_loss:.7f}, step = {step}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
                 plt.savefig(f'build/.cache/step{step}@loss={avg_loss}.jpg', dpi=300, pad_inches=0)    # visualize masked image
-            if step >= 256:
+            if step >= 128:
                 torch.save(net.state_dict(), 'build/racnn_pretrained.pt')
                 return
 
@@ -78,7 +78,7 @@ def build_gif(path='build/.cache'):
     gif_images = []
     for img_file in files:
         gif_images.append(imageio.imread(f'{path}/{img_file}'))
-    imageio.mimsave(f"build/pretrain_apn.gif", gif_images, fps=6)
+    imageio.mimsave(f"build/pretrain_apn.gif", gif_images, fps=12)
 
 
 def clean(path='build/.cache/'):
