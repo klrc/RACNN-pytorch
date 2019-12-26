@@ -118,7 +118,7 @@ def clean(path='build/.cache/'):
 
 def build_gif(path='build/.cache'):
     files = os.listdir(path)
-    files = [x for x in files if '@4x' in x]
+    files = [x for x in files if '4x' in x]
     files.sort(key=lambda x: int(x.split('@')[0].split('step')[-1]))
     gif_images = []
     for img_file in files:
