@@ -105,7 +105,9 @@ def run():
         rank_loss = train(net, trainloader, apn_opt, epoch, 'apn', sample)
 
         # eval_attention_sample(net, sample, cls_loss, rank_loss, epoch)
-        eval(net, testloader)
+        # eval(net, testloader)
+        if epoch > 2:
+            return
 
         if epoch % 20 == 0 and epoch != 0:
             stamp = f'e{epoch}{int(time.time())}'
