@@ -25,7 +25,7 @@ def avg(x): return sum(x)/len(x)
 def log(msg): open('build/core.log', 'a').write(f'[{time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}]\t'+msg+'\n'), print(msg)
 
 
-def train(net, dataloader, optimizer, epoch, _type):
+def train(net, dataloader, optimizer, epoch, _type, sample=None):
     assert _type in ['apn', 'backbone']
     losses = 0
     net.mode(_type), log(f' :: Switch to {_type}')
@@ -37,6 +37,11 @@ def train(net, dataloader, optimizer, epoch, _type):
             avg_loss = losses/20
             log(f':: loss @step({step:2d}/{len(dataloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
             losses = 0
+
+        if step % 3 == 0 or step < 5:
+            cls_loss = avg_loss if _type == 'backbone' else 0
+            rank_loss = avg_loss if _type == 'apn' else 0
+            eval_attention_sample(net, sample, 0, cls_loss, rank_loss, step)
     return avg_loss
 
 
@@ -48,13 +53,13 @@ def eval_attention_sample(net, sample, cls_loss, rank_loss, epoch):
     plt.imshow(CUB200_loader.tensor_to_img(x1[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
     plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
     plt.text(0, 0, f'L_cls = {cls_loss:.7f}, L_rank = {rank_loss:.7f}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
-    plt.savefig(f'build/.cache/epoch{epoch}@loss={cls_loss+rank_loss}.jpg', dpi=300, pad_inches=0)    # visualize masked image
+    plt.savefig(f'build/.cache/step{epoch}@loss={cls_loss+rank_loss}.jpg', dpi=300, pad_inches=0)    # visualize masked image
 
     fig = plt.gcf()
     plt.imshow(CUB200_loader.tensor_to_img(x2[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
     plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
     plt.text(0, 0, f'L_cls = {cls_loss:.7f}, L_rank = {rank_loss:.7f}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
-    plt.savefig(f'build/.cache/epoch{epoch}@loss={cls_loss+rank_loss}_4x.jpg', dpi=300, pad_inches=0)    # visualize masked image
+    plt.savefig(f'build/.cache/step{epoch}@loss={cls_loss+rank_loss}_4x.jpg', dpi=300, pad_inches=0)    # visualize masked image
 
 
 def eval(net, dataloader):
@@ -96,10 +101,10 @@ def run():
     sample = random_sample(testloader)
 
     for epoch in range(260):
-        cls_loss = train(net, trainloader, cls_opt, epoch, 'backbone')
-        rank_loss = train(net, trainloader, apn_opt, epoch, 'apn')
+        cls_loss = train(net, trainloader, cls_opt, epoch, 'backbone', sample)
+        rank_loss = train(net, trainloader, apn_opt, epoch, 'apn', sample)
 
-        eval_attention_sample(net, sample, cls_loss, rank_loss, epoch)
+        # eval_attention_sample(net, sample, cls_loss, rank_loss, epoch)
         eval(net, testloader)
 
         if epoch % 20 == 0 and epoch != 0:
@@ -127,6 +132,6 @@ def build_gif(path='build/.cache'):
 
 
 if __name__ == "__main__":
-    # clean()
-    # run()
+    clean()
+    run()
     build_gif()
