@@ -29,12 +29,21 @@ def random_sample(dataloader):
         return inputs[0].cuda()
 
 
-def run():
+def save_img(x, path, annotation=''):
+    fig = plt.gcf()  # generate outputs
+    plt.imshow(CUB200_loader.tensor_to_img(x[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
+    plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
+    plt.text(0, 0, annotation, color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
+    plt.savefig(path, dpi=300, pad_inches=0)    # visualize masked image
+
+
+def run(pretrained_backbone=None):
     net = RACNN(num_classes=200).cuda()
-    state_dict = torch.load('build/mobilenet_v2_cub200-e801577256085.pt').state_dict()
-    net.b1.load_state_dict(state_dict)
-    net.b2.load_state_dict(state_dict)
-    net.b3.load_state_dict(state_dict)
+    if pretrained_backbone:  # Using pretrained backbone for apn pretraining
+        state_dict = torch.load(pretrained_backbone).state_dict()
+        net.b1.load_state_dict(state_dict)
+        net.b2.load_state_dict(state_dict)
+        net.b3.load_state_dict(state_dict)
 
     cudnn.benchmark = True
 
@@ -48,8 +57,8 @@ def run():
     sample = random_sample(testloader)
     net.mode("pretrain_apn")
 
+    def avg(x): return sum(x)/len(x)
     for epoch in range(1):
-        def avg(x): return sum(x)/len(x)
         losses = []
         for step, (inputs, _) in enumerate(trainloader, 0):
 
@@ -59,26 +68,23 @@ def run():
             print(f':: loss @step{step:2d}: {loss}\tavg_loss_5: {avg_loss}')
 
             if step % 2 == 0 or step < 5:  # check point
-                _, _, attens, resized = net(sample.unsqueeze(0))
+                _, _, _, resized = net(sample.unsqueeze(0))
                 x1, x2 = resized[0].data, resized[1].data
+                # visualize cropped inputs
+                save_img(x1, path=f'build/.cache/step_{step}@2x.jpg', annotation=f'loss = {avg_loss:.7f}, step = {step}')
+                save_img(x2, path=f'build/.cache/step_{step}@4x.jpg', annotation=f'loss = {avg_loss:.7f}, step = {step}')
 
-                fig = plt.gcf()
-                plt.imshow(CUB200_loader.tensor_to_img(x2[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
-                plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
-                plt.text(0, 0, f'loss = {avg_loss:.7f}, step = {step}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
-                plt.savefig(f'build/.cache/step{step}@loss={avg_loss}.jpg', dpi=300, pad_inches=0)    # visualize masked image
-            if step >= 128:
+            if step >= 128:  # 128 steps is enough for pretraining
                 torch.save(net.state_dict(), f'build/racnn_pretrained-{int(time.time())}.pt')
                 return
 
 
-def build_gif(path='build/.cache'):
-    files = os.listdir(path)
-    files.sort(key=lambda x: int(x.split('@')[0].split('step')[-1]))
-    gif_images = []
-    for img_file in files:
-        gif_images.append(imageio.imread(f'{path}/{img_file}'))
-    imageio.mimsave(f"build/pretrain_apn_cub200@4x-{int(time.time())}.gif", gif_images, fps=8)
+def build_gif(pattern='@2x', gif_name='pretrain_apn_cub200', cache_path='build/.cache'):
+    # generate a gif, enjoy XD
+    files = [x for x in os.listdir(cache_path) if pattern in x]
+    files.sort(key=lambda x: int(x.split('@')[0].split('_')[-1]))
+    gif_images = [imageio.imread(f'{cache_path}/{img_file}') for img_file in files]
+    imageio.mimsave(f"build/{gif_name}{pattern}-{int(time.time())}.gif", gif_images, fps=8)
 
 
 def clean(path='build/.cache/'):
@@ -90,5 +96,6 @@ def clean(path='build/.cache/'):
 
 if __name__ == "__main__":
     clean()
-    run()
-    build_gif()
+    run(pretrained_backbone='build/mobilenet_v2_cub200-e801577256085.pt')
+    build_gif(pattern='@2x', gif_name='pretrain_apn_cub200')
+    build_gif(pattern='@4x', gif_name='pretrain_apn_cub200')

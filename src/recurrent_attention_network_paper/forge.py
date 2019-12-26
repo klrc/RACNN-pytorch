@@ -7,28 +7,25 @@ import time
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
+from torch.autograd import Variable
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 sys.path.append('.')  # noqa: E402
 from src.recurrent_attention_network_paper.model import RACNN
 from src.recurrent_attention_network_paper.CUB_loader import CUB200_loader
-from src.recurrent_attention_network_paper.pretrain_apn import random_sample
-from torch.autograd import Variable
+from src.recurrent_attention_network_paper.pretrain_apn import random_sample, save_img, clean, log, build_gif
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 def avg(x): return sum(x)/len(x)
 
 
-def log(msg): open('build/core.log', 'a').write(f'[{time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}]\t'+msg+'\n'), print(msg)
-
-
-def train(net, dataloader, optimizer, epoch, _type, sample=None):
+def train(net, dataloader, optimizer, epoch, _type):
     assert _type in ['apn', 'backbone']
     losses = 0
-    net.mode(_type), log(f' :: Switch to {_type}')
+    net.mode(_type), log(f' :: Switch to {_type}')  # switch loss type
     for step, (inputs, targets) in enumerate(dataloader, 0):
         loss = net.echo(inputs, targets, optimizer)
         losses += loss
@@ -37,35 +34,10 @@ def train(net, dataloader, optimizer, epoch, _type, sample=None):
             avg_loss = losses/20
             log(f':: loss @step({step:2d}/{len(dataloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
             losses = 0
-
-        if step > 100:
-            return 0
-
-        if step % 3 == 0 or step < 5:
-            cls_loss = loss if _type == 'backbone' else 0
-            rank_loss = loss if _type == 'apn' else 0
-            eval_attention_sample(net, sample, cls_loss, rank_loss, step)
     return avg_loss
 
 
-def eval_attention_sample(net, sample, cls_loss, rank_loss, epoch):
-    _, _, attens, resized = net(sample.unsqueeze(0))
-    x1, x2 = resized[0].data, resized[1].data
-
-    fig = plt.gcf()
-    plt.imshow(CUB200_loader.tensor_to_img(x1[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
-    plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
-    plt.text(0, 0, f'L_cls = {cls_loss:.7f}, L_rank = {rank_loss:.7f}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
-    plt.savefig(f'build/.cache/step{epoch}@loss={cls_loss+rank_loss}.jpg', dpi=300, pad_inches=0)    # visualize masked image
-
-    fig = plt.gcf()
-    plt.imshow(CUB200_loader.tensor_to_img(x2[0]), aspect='equal'), plt.axis('off'), fig.set_size_inches(448/100.0/3.0, 448/100.0/3.0)
-    plt.gca().xaxis.set_major_locator(plt.NullLocator()), plt.gca().yaxis.set_major_locator(plt.NullLocator()), plt.subplots_adjust(top=1, bottom=0, left=0, right=1, hspace=0, wspace=0), plt.margins(0, 0)
-    plt.text(0, 0, f'L_cls = {cls_loss:.7f}, L_rank = {rank_loss:.7f}', color='white', size=4, ha="left", va="top", bbox=dict(boxstyle="square", ec='black', fc='black'))
-    plt.savefig(f'build/.cache/step{epoch}@loss={cls_loss+rank_loss}_4x.jpg', dpi=300, pad_inches=0)    # visualize masked image
-
-
-def eval(net, dataloader):
+def test(net, dataloader):
     log(' :: Testing on test set ...')
     correct_summary = {'clsf-0': {'top-1': 0, 'top-5': 0}, 'clsf-1': {'top-1': 0, 'top-5': 0}, 'clsf-2': {'top-1': 0, 'top-5': 0}}
     for step, (inputs, labels) in enumerate(dataloader, 0):
@@ -85,9 +57,9 @@ def eval(net, dataloader):
                 return
 
 
-def run():
+def run(pretrained_model):
     net = RACNN(num_classes=200).cuda()
-    net.load_state_dict(torch.load('build/racnn_pretrained-1577262631.pt'))
+    net.load_state_dict(torch.load(pretrained_model))
     cudnn.benchmark = True
 
     cls_params = list(net.b1.parameters()) + list(net.b2.parameters()) + list(net.b3.parameters()) + \
@@ -104,14 +76,17 @@ def run():
     sample = random_sample(testloader)
 
     for epoch in range(260):
-        cls_loss = train(net, trainloader, cls_opt, epoch, 'backbone', sample)
-        rank_loss = train(net, trainloader, apn_opt, epoch, 'apn', sample)
+        cls_loss = train(net, trainloader, cls_opt, epoch, 'backbone')
+        rank_loss = train(net, trainloader, apn_opt, epoch, 'apn')
+        test(net, testloader)
 
-        # eval_attention_sample(net, sample, cls_loss, rank_loss, epoch)
-        # eval(net, testloader)
-        if epoch > 2:
-            return
+        # visualize cropped inputs
+        _, _, _, resized = net(sample.unsqueeze(0))
+        x1, x2 = resized[0].data, resized[1].data
+        save_img(x1, path=f'build/.cache/epoch_{epoch}@2x.jpg', annotation=f'cls_loss = {cls_loss:.7f}, rank_loss = {rank_loss:.7f}')
+        save_img(x2, path=f'build/.cache/epoch_{epoch}@4x.jpg', annotation=f'cls_loss = {cls_loss:.7f}, rank_loss = {rank_loss:.7f}')
 
+        # save model per 20 epoches
         if epoch % 20 == 0 and epoch != 0:
             stamp = f'e{epoch}{int(time.time())}'
             torch.save(net, f'build/racnn_mobilenetv2_cub200-{stamp}.pt')
@@ -119,24 +94,8 @@ def run():
             torch.save(apn_opt.state_dict, f'build/apn_optimizer-{stamp}.pt')
 
 
-def clean(path='build/.cache/'):
-    print(' :: Cleaning cache dir ...')
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    os.makedirs(path)
-
-
-def build_gif(path='build/.cache'):
-    files = os.listdir(path)
-    files = [x for x in files if '4x' not in x]
-    files.sort(key=lambda x: int(x.split('@')[0].split('epoch')[-1]))
-    gif_images = []
-    for img_file in files:
-        gif_images.append(imageio.imread(f'{path}/{img_file}'))
-    imageio.mimsave(f"build/racnn@2x-{int(time.time())}.gif", gif_images, fps=12)
-
-
 if __name__ == "__main__":
     clean()
-    run()
-    build_gif()
+    run(pretrained_model='build/racnn_pretrained-1577262631.pt')
+    build_gif(pattern='@2x', gif_name='racnn_cub200')
+    build_gif(pattern='@4x', gif_name='racnn_cub200')

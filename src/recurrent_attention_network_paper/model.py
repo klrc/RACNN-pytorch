@@ -160,15 +160,16 @@ class RACNN(nn.Module):
         return loss.item()
 
     @staticmethod
-    def multitask_loss(preds, targets):
+    def multitask_loss(logits, targets):
         loss = []
-        for i in range(len(preds)):
-            loss.append(F.cross_entropy(preds[i], targets))
+        for i in range(len(logits)):
+            loss.append(F.cross_entropy(logits[i], targets))
         loss = torch.sum(torch.stack(loss))
         return loss
 
     @staticmethod
-    def rank_loss(preds, targets, margin=0.05):
+    def rank_loss(logits, targets, margin=0.05):
+        preds = F.softmax(logits)
         set_pt = [[scaled_pred[batch_inner_id][target] for scaled_pred in preds] for batch_inner_id, target in enumerate(targets)]
         loss = 0
         for batch_inner_id, pts in enumerate(set_pt):
@@ -178,18 +179,18 @@ class RACNN(nn.Module):
 
     def __echo_backbone(self, inputs, targets, optimizer):
         inputs, targets = Variable(inputs).cuda(), Variable(targets).cuda()
-        preds, _, _, _ = self.forward(inputs)
+        logits, _, _, _ = self.forward(inputs)
         optimizer.zero_grad()
-        loss = self.multitask_loss(preds, targets)
+        loss = self.multitask_loss(logits, targets)
         loss.backward()
         optimizer.step()
         return loss.item()
 
     def __echo_apn(self, inputs, targets, optimizer):
         inputs, targets = Variable(inputs).cuda(), Variable(targets).cuda()
-        preds, _, _, _ = self.forward(inputs)
+        logits, _, _, _ = self.forward(inputs)
         optimizer.zero_grad()
-        loss = self.rank_loss(preds, targets)
+        loss = self.rank_loss(logits, targets)
         loss.backward()
         optimizer.step()
         return loss.item()
