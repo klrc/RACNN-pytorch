@@ -118,12 +118,12 @@ def clean(path='build/.cache/'):
 
 def build_gif(path='build/.cache'):
     files = os.listdir(path)
-    files = [x for x in files if '4x' in x]
+    files = [x for x in files if '4x' not in x]
     files.sort(key=lambda x: int(x.split('@')[0].split('epoch')[-1]))
     gif_images = []
     for img_file in files:
         gif_images.append(imageio.imread(f'{path}/{img_file}'))
-    imageio.mimsave(f"build/racnn@4x-{int(time.time())}.gif", gif_images, fps=12)
+    imageio.mimsave(f"build/racnn@2x-{int(time.time())}.gif", gif_images, fps=12)
 
 
 if __name__ == "__main__":
