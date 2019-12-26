@@ -28,7 +28,15 @@ different from the origin code, several possibly important changes are applied h
 
 Apn pretrained with mobilenet-v2(imagenet pretrained) backbone: 
 
+| ![pretrain_apn_imagenet-1577260547](docs/pretrain_apn_imagenet-1577260547.gif) | ![pretrain_apn_imagenet-1577260547](docs/pretrain_apn_imagenet@4x-1577260771.gif) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| zoomed input after apn-1.                                    | zoom input after apn-2.                                      |
+
 I pretrained the mobilenet on CUB_200 dataset before training, and it helps a lot as following:
+
+| ![pretrain_apn_imagenet-1577260547](docs/pretrain_apn_cub200-1577261336.gif) | ![pretrain_apn_imagenet-1577260547](docs/pretrain_apn_cub200@4x-1577261529.gif) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| zoomed input after apn-1 (with pretraining on CUB_200_2011)  | zoom input after apn-2 (with pretraining on CUB_200_2011)    |
 
 With this, I only trained the network for a little time now and the current result at epoch 29 is:
 
