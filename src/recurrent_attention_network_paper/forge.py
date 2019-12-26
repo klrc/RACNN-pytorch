@@ -38,6 +38,9 @@ def train(net, dataloader, optimizer, epoch, _type, sample=None):
             log(f':: loss @step({step:2d}/{len(dataloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
             losses = 0
 
+        if step > 100:
+            return 0
+
         if step % 3 == 0 or step < 5:
             cls_loss = loss if _type == 'backbone' else 0
             rank_loss = loss if _type == 'apn' else 0
