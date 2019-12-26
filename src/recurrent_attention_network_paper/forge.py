@@ -39,8 +39,8 @@ def train(net, dataloader, optimizer, epoch, _type, sample=None):
             losses = 0
 
         if step % 3 == 0 or step < 5:
-            cls_loss = avg_loss if _type == 'backbone' else 0
-            rank_loss = avg_loss if _type == 'apn' else 0
+            cls_loss = loss if _type == 'backbone' else 0
+            rank_loss = loss if _type == 'apn' else 0
             eval_attention_sample(net, sample, 0, cls_loss, rank_loss, step)
     return avg_loss
 
