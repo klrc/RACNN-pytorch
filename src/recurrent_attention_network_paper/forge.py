@@ -16,7 +16,7 @@ from src.recurrent_attention_network_paper.model import RACNN
 from src.recurrent_attention_network_paper.CUB_loader import CUB200_loader
 from src.recurrent_attention_network_paper.pretrain_apn import random_sample, save_img, clean, log, build_gif
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def avg(x): return sum(x)/len(x)
