@@ -1,3 +1,4 @@
+import imageio
 import os
 import shutil
 import sys
@@ -16,6 +17,7 @@ from src.recurrent_attention_network_paper.pretrain_apn import random_sample
 from torch.autograd import Variable
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 
 def avg(x): return sum(x)/len(x)
 
@@ -114,6 +116,17 @@ def clean(path='build/.cache/'):
     os.makedirs(path)
 
 
+def build_gif(path='build/.cache'):
+    files = os.listdir(path)
+    files = [x for x in files if '@4x' in x]
+    files.sort(key=lambda x: int(x.split('@')[0].split('step')[-1]))
+    gif_images = []
+    for img_file in files:
+        gif_images.append(imageio.imread(f'{path}/{img_file}'))
+    imageio.mimsave(f"build/racnn@4x-{int(time.time())}.gif", gif_images, fps=12)
+
+
 if __name__ == "__main__":
-    clean()
-    run()
+    # clean()
+    # run()
+    build_gif()
