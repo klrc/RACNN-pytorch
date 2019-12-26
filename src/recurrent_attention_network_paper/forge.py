@@ -8,7 +8,6 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 from torch.autograd import Variable
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 sys.path.append('.')  # noqa: E402
