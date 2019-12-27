@@ -38,16 +38,16 @@ I pretrained the mobilenet on CUB_200 dataset before training, and it helps a lo
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | zoomed input after apn-1 (with pretraining on CUB_200_2011)  | zoom input after apn-2 (with pretraining on CUB_200_2011)    |
 
-With this, I only trained the network for a little time now and the current result at epoch 29 is:
+With this, I only trained the network for a little time now and the current result at epoch 30 is:
 
 ```
  :: Testing on test set ...
-[2019-12-25 23:28:52]           Accuracy clsf-0@top-1 (201/725) = 62.99505%
-[2019-12-25 23:28:52]           Accuracy clsf-0@top-5 (201/725) = 86.44802%
-[2019-12-25 23:28:52]           Accuracy clsf-1@top-1 (201/725) = 67.26485%
-[2019-12-25 23:28:52]           Accuracy clsf-1@top-5 (201/725) = 88.67574%
-[2019-12-25 23:28:52]           Accuracy clsf-2@top-1 (201/725) = 69.74010%
-[2019-12-25 23:28:52]           Accuracy clsf-2@top-5 (201/725) = 90.34653%
+[2019-12-26 22:35:31]           Accuracy clsf-0@top-1 (201/725) = 77.59901%
+[2019-12-26 22:35:31]           Accuracy clsf-0@top-5 (201/725) = 93.00743%
+[2019-12-26 22:35:31]           Accuracy clsf-1@top-1 (201/725) = 68.50248%
+[2019-12-26 22:35:31]           Accuracy clsf-1@top-5 (201/725) = 89.72772%
+[2019-12-26 22:35:31]           Accuracy clsf-2@top-1 (201/725) = 69.24505%
+[2019-12-26 22:35:31]           Accuracy clsf-2@top-5 (201/725) = 89.97525%
 
 ```
 
