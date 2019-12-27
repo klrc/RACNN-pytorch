@@ -73,7 +73,7 @@ the CUB_200_2011 dataset [here](http://www.vision.caltech.edu/visipedia/CUB-200-
         run(pretrained_backbone='build/mobilenet_v2_cub200-e801577256085.pt')
     ```
    
-    set the model for backbone or just set `pretrained_backbone=None` if a pretrained mobilenet is not needed, then:
+    set the model for backbone, then:
    
    ```
     $ python src/recurrent_attention_network_paper/pretrain_apn.py
