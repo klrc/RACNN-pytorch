@@ -50,6 +50,7 @@ acc_b2_top5:    91.33663%
 ```
 
 The accuracy:
+
 ![Figure_1](docs/Figure_1.png)
 ![Figure_2](docs/Figure_2.png) 
 
