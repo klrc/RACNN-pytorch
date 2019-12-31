@@ -38,24 +38,8 @@ I pretrained the mobilenet on CUB_200 dataset before training, and it helps a lo
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | zoomed input after apn-1 (with pretraining on CUB_200_2011)  | zoom input after apn-2 (with pretraining on CUB_200_2011)    |
 
-With this, I trained the network for a little time now and the current result at epoch 30 is:
-
-```
-acc_b0_top1:    79.82673%
-acc_b1_top1:    70.48267%
-acc_b2_top1:    69.86386%
-acc_b0_top5:    95.29703%
-acc_b1_top5:    91.39851%
-acc_b2_top5:    91.33663%
-```
-
-The accuracy:
-
-![Figure_1](docs/Figure_1.png)
-![Figure_2](docs/Figure_2.png) 
-
-
-
+### Final accuracy:
+still training ... (75.92822%@epoch8 now)
 
 
 ## Usage
@@ -98,9 +82,7 @@ outputs are generated at `build/`, including logs, frozen optimizers&model and s
 ## Issues
 
 - how to define the margin of rank loss? (since it may differs on each backbone(e.g. mobilenet), I think..)
-- According to the output picture, during the final training phase, the  two outputs tend to output the full image size, which is not consistent  with the original intention of the paper. 
-![DeepinScreenshot_select-area_20191230101729](docs/DeepinScreenshot_select-area_20191230101729.png)
-- other issues may happen since the training is not finished now...
+
 
 ## References
 
