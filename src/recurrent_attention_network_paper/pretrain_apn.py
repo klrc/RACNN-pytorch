@@ -17,7 +17,6 @@ from src.recurrent_attention_network_paper.model import RACNN
 from src.recurrent_attention_network_paper.CUB_loader import CUB200_loader
 from torch.autograd import Variable
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def log(msg):
@@ -95,6 +94,7 @@ def clean(path='build/.cache/'):
 
 
 if __name__ == "__main__":
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     clean()
     run(pretrained_backbone='build/mobilenet_v2_cub200-e801577256085.pt')
     build_gif(pattern='@2x', gif_name='pretrain_apn_cub200')

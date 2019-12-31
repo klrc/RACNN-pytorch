@@ -15,7 +15,6 @@ from src.recurrent_attention_network_paper.model import RACNN
 from src.recurrent_attention_network_paper.CUB_loader import CUB200_loader
 from src.recurrent_attention_network_paper.pretrain_apn import random_sample, save_img, clean, log, build_gif
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def avg(x): return sum(x)/len(x)
@@ -33,6 +32,7 @@ def train(net, dataloader, optimizer, epoch, _type):
             avg_loss = losses/20
             log(f':: loss @step({step:2d}/{len(dataloader)})-epoch{epoch}: {loss:.10f}\tavg_loss_20: {avg_loss:.10f}')
             losses = 0
+
     return avg_loss
 
 
@@ -57,6 +57,7 @@ def test(net, dataloader):
 
 
 def run(pretrained_model):
+    log(f' :: Start training with {pretrained_model}')
     net = RACNN(num_classes=200).cuda()
     net.load_state_dict(torch.load(pretrained_model))
     cudnn.benchmark = True
@@ -74,7 +75,7 @@ def run(pretrained_model):
     testloader = torch.utils.data.DataLoader(testset, batch_size=8, shuffle=False, collate_fn=testset.CUB_collate, num_workers=4)
     sample = random_sample(testloader)
 
-    for epoch in range(260):
+    for epoch in range(50):
         cls_loss = train(net, trainloader, cls_opt, epoch, 'backbone')
         rank_loss = train(net, trainloader, apn_opt, epoch, 'apn')
         test(net, testloader)
@@ -85,16 +86,18 @@ def run(pretrained_model):
         save_img(x1, path=f'build/.cache/epoch_{epoch}@2x.jpg', annotation=f'cls_loss = {cls_loss:.7f}, rank_loss = {rank_loss:.7f}')
         save_img(x2, path=f'build/.cache/epoch_{epoch}@4x.jpg', annotation=f'cls_loss = {cls_loss:.7f}, rank_loss = {rank_loss:.7f}')
 
-        # save model per 20 epoches
-        if epoch % 20 == 0 and epoch != 0:
+        # save model per 10 epoches
+        if epoch % 10 == 0 and epoch != 0:
             stamp = f'e{epoch}{int(time.time())}'
-            torch.save(net, f'build/racnn_mobilenetv2_cub200-{stamp}.pt')
-            torch.save(cls_opt.state_dict, f'build/cls_optimizer-{stamp}.pt')
-            torch.save(apn_opt.state_dict, f'build/apn_optimizer-{stamp}.pt')
+            torch.save(net.state_dict, f'build/racnn_mobilenetv2_cub200-e{epoch}s{stamp}.pt')
+            log(f' :: Saved model dict as:\tbuild/racnn_mobilenetv2_cub200-e{epoch}s{stamp}.pt')
+            torch.save(cls_opt.state_dict, f'build/cls_optimizer-s{stamp}.pt')
+            torch.save(apn_opt.state_dict, f'build/apn_optimizer-s{stamp}.pt')
 
 
 if __name__ == "__main__":
     clean()
-    run(pretrained_model='build/racnn_pretrained-1577262631.pt')
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    run(pretrained_model='build/racnn_pretrained-1577771401.pt')
     build_gif(pattern='@2x', gif_name='racnn_cub200')
     build_gif(pattern='@4x', gif_name='racnn_cub200')

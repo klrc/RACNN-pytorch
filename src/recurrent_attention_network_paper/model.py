@@ -114,15 +114,18 @@ class RACNN(nn.Module):
 
     def forward(self, x):
         batch_size = x.shape[0]
+        rescale_tl = torch.tensor([1, 1, 0.5], requires_grad=False).cuda()
         # forward @scale-1
         feature_s1 = self.b1.features[:-1](x)  # torch.Size([1, 320, 14, 14])
         pool_s1 = self.feature_pool(feature_s1)
-        attention_s1 = self.apn1(feature_s1.view(-1, 320 * 14 * 14))
+        _attention_s1 = self.apn1(feature_s1.view(-1, 320 * 14 * 14))
+        attention_s1 = _attention_s1*rescale_tl
         resized_s1 = self.crop_resize(x, attention_s1 * x.shape[-1])
         # forward @scale-2
         feature_s2 = self.b2.features[:-1](resized_s1)  # torch.Size([1, 320, 7, 7])
         pool_s2 = self.feature_pool(feature_s2)
-        attention_s2 = self.apn2(feature_s2.view(-1, 320 * 7 * 7))
+        _attention_s2 = self.apn2(feature_s2.view(-1, 320 * 7 * 7))
+        attention_s2 = _attention_s2*rescale_tl
         resized_s2 = self.crop_resize(resized_s1, attention_s2 * resized_s1.shape[-1])
         # forward @scale-3
         feature_s3 = self.b3.features[:-1](resized_s2)
@@ -169,7 +172,7 @@ class RACNN(nn.Module):
 
     @staticmethod
     def rank_loss(logits, targets, margin=0.05):
-        preds = F.softmax(logits)
+        preds = [F.softmax(x, dim=-1) for x in logits]
         set_pt = [[scaled_pred[batch_inner_id][target] for scaled_pred in preds] for batch_inner_id, target in enumerate(targets)]
         loss = 0
         for batch_inner_id, pts in enumerate(set_pt):
