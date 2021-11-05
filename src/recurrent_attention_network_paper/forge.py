@@ -91,8 +91,8 @@ def run(pretrained_model):
             stamp = f'e{epoch}{int(time.time())}'
             torch.save(net.state_dict, f'build/racnn_mobilenetv2_cub200-e{epoch}s{stamp}.pt')
             log(f' :: Saved model dict as:\tbuild/racnn_mobilenetv2_cub200-e{epoch}s{stamp}.pt')
-            torch.save(cls_opt.state_dict, f'build/cls_optimizer-s{stamp}.pt')
-            torch.save(apn_opt.state_dict, f'build/apn_optimizer-s{stamp}.pt')
+            torch.save(cls_opt.state_dict(), f'build/cls_optimizer-s{stamp}.pt')
+            torch.save(apn_opt.state_dict(), f'build/apn_optimizer-s{stamp}.pt')
 
 
 if __name__ == "__main__":
