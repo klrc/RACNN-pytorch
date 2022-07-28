@@ -2,7 +2,7 @@
 
 This is a mobilenet version of RACNN.
 
-Referred from [another cool pytorch implementation](https://github.com/jeong-tae/RACNN-pytorch) .
+Referred from [raw pytorch implementation](https://github.com/jeong-tae/RACNN-pytorch) .
 
 ## Requirements
 
