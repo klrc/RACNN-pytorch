@@ -1,5 +1,11 @@
 # RACNN Pytorch Implementation 
 
+
+
+**NOTE:** There seems to be some issue with the margin loss. Sorry that I'm not planning to fix this, you can try other implementation https://github.com/jeong-tae/RACNN-pytorch.
+
+
+
 This is a mobilenet version of RACNN.
 
 Referred from [raw pytorch implementation](https://github.com/jeong-tae/RACNN-pytorch) .
